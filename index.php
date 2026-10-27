@@ -1,32 +1,48 @@
 <?php
-// Pengaturan waktu
-date_default_timezone_set('UTC');
+// Pengaturan zona waktu
+date_default_timezone_set('Asia/Jakarta');
 
-// Mengambil info server & PHP secara dinamis
-$phpVersion = phpversion();
-$serverSoftware = $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown';
-$serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
-$documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '/home/site/wwwroot';
-$protocol = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1';
+// =========================================================================
+// SIMULASI DATA (Nantinya data ini diambil dari Database MySQL)
+// =========================================================================
+$namaPengguna = "Fulan";
+$streakHariIni = 14; // Streak berturut-turut membaca
+$waktuProduktif = "Ba'da Subuh"; 
 
-$memoryLimit = ini_get('memory_limit');
-$maxExecutionTime = ini_get('max_execution_time') . 's';
-$uploadMaxSize = ini_get('upload_max_filesize');
-$postMaxSize = ini_get('post_max_size');
-$timezone = date_default_timezone_get();
+// Data progres bacaan
+$totalHalamanQuran = 604;
+$halamanSudahDibaca = 412; // Posisi saat ini
+$rataRataHalamanPerHari = 4; // Berdasarkan histori pengguna
 
-$operatingSystem = PHP_OS_FAMILY;
-$architecture = php_uname('m');
-$currentTime = date('Y-m-d H:i:s');
-$clientIP = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-$requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+// Data hari ini
+$surahTerakhir = "Al-Ahzab";
+$ayatTerakhir = 21;
+$targetHarian = 4; // Halaman
+$terbacaHariIni = 2; // Halaman
+
+// =========================================================================
+// LOGIKA PERHITUNGAN ANALITIK
+// =========================================================================
+
+// 1. Hitung persentase khatam keseluruhan
+$persentaseKhatam = round(($halamanSudahDibaca / $totalHalamanQuran) * 100, 1);
+
+// 2. Hitung estimasi hari menuju khatam
+$sisaHalaman = $totalHalamanQuran - $halamanSudahDibaca;
+$estimasiHari = ($rataRataHalamanPerHari > 0) ? ceil($sisaHalaman / $rataRataHalamanPerHari) : 0;
+$estimasiTanggalKhatam = date('d M Y', strtotime("+$estimasiHari days"));
+
+// 3. Persentase target harian
+$persentaseHarian = ($terbacaHariIni / $targetHarian) * 100;
+if ($persentaseHarian > 100) $persentaseHarian = 100;
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHP Info Dashboard</title>
+    <title>Mutaba'ah Yaumiyah Analytics</title>
     <style>
         * {
             box-sizing: border-box;
@@ -36,8 +52,9 @@ $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         }
 
         body {
-            background-color: #6366f1;
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            /* Tema Hijau Islami Modern */
+            background-color: #0f766e;
+            background: linear-gradient(135deg, #0f766e 0%, #047857 100%);
             min-height: 100vh;
             padding: 40px 20px;
             display: flex;
@@ -46,7 +63,7 @@ $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             width: 100%;
             display: flex;
             flex-direction: column;
@@ -60,29 +77,35 @@ $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
             padding: 32px 20px;
             text-align: center;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
+        .header-text { text-align: left; }
+        
         .header-title {
             font-size: 28px;
             font-weight: 800;
             color: #1e293b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
-
-        .header-subtitle {
-            font-size: 20px;
-            font-weight: 700;
-            color: #4f46e5;
             margin-bottom: 8px;
         }
 
         .header-desc {
-            font-size: 14px;
+            font-size: 15px;
             color: #64748b;
+        }
+
+        .streak-badge {
+            background-color: #fef3c7;
+            color: #d97706;
+            padding: 12px 24px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         /* Grid Layout */
@@ -93,12 +116,12 @@ $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         }
 
         @media (max-width: 900px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
+            .grid { grid-template-columns: 1fr; }
+            .header-card { flex-direction: column; gap: 16px; text-align: center; }
+            .header-text { text-align: center; }
         }
 
-        /* Section Cards */
+        /* Cards */
         .card {
             background-color: #ffffff;
             border-radius: 16px;
@@ -122,143 +145,171 @@ $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
+            padding: 10px 0;
             font-size: 14px;
+            border-bottom: 1px dashed #f1f5f9;
         }
+        .info-row:last-child { border-bottom: none; }
 
-        .info-label {
-            color: #64748b;
-            font-weight: 500;
-        }
+        .info-label { color: #64748b; font-weight: 500; }
+        .info-value { color: #0f172a; font-weight: 700; text-align: right; }
+        .highlight { color: #059669; }
 
-        .info-value {
-            color: #0f172a;
-            font-weight: 700;
-            text-align: right;
-            word-break: break-all;
-        }
-
-        .info-value.highlight {
-            color: #10b981;
-        }
-
-        /* Features List */
-        .feature-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .feature-item {
+        /* Progress Bar */
+        .progress-wrapper { margin-top: 16px; }
+        .progress-header {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #0f172a;
-            font-weight: 600;
+            justify-content: space-between;
             font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1e293b;
+        }
+        .progress-container {
+            width: 100%;
+            background-color: #e2e8f0;
+            border-radius: 999px;
+            height: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #059669;
+            border-radius: 999px;
+            transition: width 1s ease-in-out;
         }
 
-        .feature-item span {
-            color: #10b981;
-            font-weight: bold;
+        /* Form Quick Log */
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 4px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: #059669;
+        }
+        .btn-submit {
+            width: 100%;
+            background-color: #059669;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 8px;
+        }
+        .btn-submit:hover {
+            background-color: #047857;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Header -->
+    <!-- Header: Menampilkan Sambutan & Streak -->
     <div class="header-card">
-        <h1 class="header-title">🚀 PHP Info Dashboard</h1>
-        <div class="header-subtitle">PHP <?php echo htmlspecialchars($phpVersion); ?></div>
-        <p class="header-desc">Aplikasi sederhana untuk testing Azure Web App</p>
-    </div>
-
-    <!-- 3 Column Info Cards -->
-    <div class="grid">
-        <!-- Server Info -->
-        <div class="card">
-            <h2 class="card-title">📊 Server Info</h2>
-            <div class="info-row">
-                <span class="info-label">PHP Version</span>
-                <span class="info-value highlight"><?php echo htmlspecialchars($phpVersion); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Server Software</span>
-                <span class="info-value"><?php echo htmlspecialchars($serverSoftware); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Server Name</span>
-                <span class="info-value"><?php echo htmlspecialchars($serverName); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Document Root</span>
-                <span class="info-value"><?php echo htmlspecialchars($documentRoot); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Protocol</span>
-                <span class="info-value"><?php echo htmlspecialchars($protocol); ?></span>
-            </div>
+        <div class="header-text">
+            <h1 class="header-title">Ahlan wa Sahlan, <?php echo htmlspecialchars($namaPengguna); ?>!</h1>
+            <p class="header-desc">Hari yang indah untuk melanjutkan tilawahmu.</p>
         </div>
-
-        <!-- PHP Configuration -->
-        <div class="card">
-            <h2 class="card-title">⚙️ PHP Configuration</h2>
-            <div class="info-row">
-                <span class="info-label">Memory Limit</span>
-                <span class="info-value"><?php echo htmlspecialchars($memoryLimit); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Max Execution Time</span>
-                <span class="info-value"><?php echo htmlspecialchars($maxExecutionTime); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Upload Max Size</span>
-                <span class="info-value"><?php echo htmlspecialchars($uploadMaxSize); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Post Max Size</span>
-                <span class="info-value"><?php echo htmlspecialchars($postMaxSize); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Timezone</span>
-                <span class="info-value"><?php echo htmlspecialchars($timezone); ?></span>
-            </div>
-        </div>
-
-        <!-- System Info -->
-        <div class="card">
-            <h2 class="card-title">💻 System Info</h2>
-            <div class="info-row">
-                <span class="info-label">Operating System</span>
-                <span class="info-value"><?php echo htmlspecialchars($operatingSystem); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Architecture</span>
-                <span class="info-value"><?php echo htmlspecialchars($architecture); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Current Time</span>
-                <span class="info-value"><?php echo htmlspecialchars($currentTime); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Your IP</span>
-                <span class="info-value"><?php echo htmlspecialchars($clientIP); ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Request Method</span>
-                <span class="info-value"><?php echo htmlspecialchars($requestMethod); ?></span>
-            </div>
+        <div class="streak-badge">
+            🔥 <?php echo $streakHariIni; ?> Hari Streak
         </div>
     </div>
 
-    <!-- Bottom Features Card -->
+    <!-- 3 Column Cards -->
     <div class="grid">
+        
+        <!-- Card 1: Form Pencatatan Cepat (Quick Log) -->
         <div class="card">
-            <h2 class="card-title">✨ PHP <?php echo explode('.', $phpVersion)[0] . '.' . explode('.', $phpVersion)[1]; ?> Features</h2>
-            <ul class="feature-list">
-                <li class="feature-item"><span>✓</span> Property Hooks</li>
-            </ul>
+            <h2 class="card-title">📝 Catat Progres (Quick Log)</h2>
+            <form action="#" method="POST">
+                <div class="form-group">
+                    <label>Surah Terakhir</label>
+                    <input type="text" name="surah" value="<?php echo htmlspecialchars($surahTerakhir); ?>" required>
+                </div>
+                <div class="form-group">
+                    <label>Sampai Ayat</label>
+                    <input type="number" name="ayat" value="<?php echo htmlspecialchars($ayatTerakhir); ?>" required>
+                </div>
+                <div class="form-group">
+                    <label>Jumlah Halaman Dibaca Hari Ini</label>
+                    <input type="number" name="halaman" placeholder="Misal: 2" required>
+                </div>
+                <button type="submit" class="btn-submit">Simpan Progres</button>
+            </form>
         </div>
+
+        <!-- Card 2: Progres Khatam & Estimasi -->
+        <div class="card">
+            <h2 class="card-title">📖 Perjalanan Khatam</h2>
+            <div class="info-row">
+                <span class="info-label">Total Dibaca</span>
+                <span class="info-value"><?php echo $halamanSudahDibaca; ?> / <?php echo $totalHalamanQuran; ?> Hal</span>
+            </div>
+            
+            <div class="progress-wrapper">
+                <div class="progress-header">
+                    <span>Progres Keseluruhan</span>
+                    <span class="highlight"><?php echo $persentaseKhatam; ?>%</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: <?php echo $persentaseKhatam; ?>%;"></div>
+                </div>
+            </div>
+
+            <div style="margin-top: 24px; padding: 16px; background-color: #f0fdf4; border-radius: 8px; border-left: 4px solid #10b981;">
+                <p style="font-size: 13px; color: #065f46; font-weight: 600; line-height: 1.5;">
+                    💡 Berdasarkan rata-rata bacaanmu (<?php echo $rataRataHalamanPerHari; ?> hal/hari), kamu diperkirakan akan khatam pada:<br>
+                    <span style="font-size: 16px; font-weight: 800; display: block; margin-top: 4px;">🎯 <?php echo $estimasiTanggalKhatam; ?></span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Card 3: Analitik Harian -->
+        <div class="card">
+            <h2 class="card-title">📊 Analitik Harian</h2>
+            
+            <div class="info-row">
+                <span class="info-label">Waktu Paling Produktif</span>
+                <span class="info-value"><?php echo htmlspecialchars($waktuProduktif); ?></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Rata-rata Harian</span>
+                <span class="info-value"><?php echo $rataRataHalamanPerHari; ?> Halaman</span>
+            </div>
+
+            <div class="progress-wrapper" style="margin-top: 24px;">
+                <div class="progress-header">
+                    <span>Target Hari Ini (<?php echo $targetHarian; ?> Hal)</span>
+                    <span class="highlight"><?php echo $persentaseHarian; ?>%</span>
+                </div>
+                <div class="progress-container">
+                    <!-- Progress bar harian -->
+                    <div class="progress-bar" style="width: <?php echo $persentaseHarian; ?>%; background-color: <?php echo ($persentaseHarian >= 100) ? '#10b981' : '#f59e0b'; ?>;"></div>
+                </div>
+                <p style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: right;">
+                    Telah dibaca: <?php echo $terbacaHariIni; ?> halaman
+                </p>
+            </div>
+        </div>
+
     </div>
 </div>
 
