@@ -1,0 +1,49 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my_app_container
+    restart: unless-stopped # Ketentuan 6
+    ports:
+      - "80:5000" # Map port 80 VM ke port 5000 aplikasi
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+    networks:
+      - internal_network # Ketentuan 3
+    depends_on:
+      db:
+        condition: service_healthy # Ketentuan 5
+
+  db:
+    image: mysql:8.0
+    container_name: my_db_container
+    restart: unless-stopped # Ketentuan 6
+    # PENTING: Jangan ada bagian 'ports:' di sini agar DB terisolasi dari publik (Ketentuan 3)
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql # Ketentuan 4 (Data Persistency)
+    networks:
+      - internal_network # Ketentuan 3
+    healthcheck: # Ketentuan 5
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  internal_network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
